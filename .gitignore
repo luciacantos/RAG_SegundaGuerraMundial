@@ -32,5 +32,9 @@ Thumbs.db
 # ---- Data folders (si quieres evitar subir datos grandes) ----
 data/*
 
+
+# no subier la api de openai
+.env
+
 # Pero deja esto si quieres permitir CSV pequeños:
 #!data/*.csv
