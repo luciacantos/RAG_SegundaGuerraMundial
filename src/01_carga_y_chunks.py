@@ -14,11 +14,12 @@ PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 
 def cargar_pdfs():
     """
-    Carga todos los PDFs de data/raw como documentos de LangChain.
+    Carga todos los PDFs de data/raw (y sus subcarpetas) como documentos de LangChain.
     """
     docs = []
-    for pdf_path in RAW_DIR.glob("*.pdf"):
-        print(f"📄 Cargando {pdf_path.name}...")
+    # 👇 ANTES: RAW_DIR.glob("*.pdf")
+    for pdf_path in RAW_DIR.rglob("*.pdf"):
+        print(f"📄 Cargando {pdf_path.relative_to(RAW_DIR)}...")
         loader = PyPDFLoader(str(pdf_path))
         pdf_docs = loader.load()
         # Añadir metadatos

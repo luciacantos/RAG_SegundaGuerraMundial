@@ -14,13 +14,16 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 BASE_DIR = Path(__file__).resolve().parents[1]
 PROCESSED_DIR = BASE_DIR / "data" / "processed"
 
-# ⬇️ AHORA USAMOS EL ARCHIVO COMBINADO
+# Archivo combinado con CHUNKS + QA
 CHUNKS_PATH = PROCESSED_DIR / "ww2_chunks_plus_qa.jsonl"
 EMB_PATH = PROCESSED_DIR / "ww2_embeddings_plus_qa.npy"
 
 
 def cargar_chunks():
     """Lee el JSONL de chunks y lo devuelve como lista de dicts."""
+    if not CHUNKS_PATH.exists():
+        raise FileNotFoundError(f"❌ No existe el archivo: {CHUNKS_PATH}")
+
     chunks = []
     with open(CHUNKS_PATH, "r", encoding="utf-8") as f:
         for line in f:
@@ -45,7 +48,7 @@ def main():
     all_embeddings = []
 
     for i in range(0, len(chunks), batch_size):
-        batch_texts = [c["text"] for c in chunks[i : i + batch_size]]
+        batch_texts = [c["text"] for c in chunks[i: i + batch_size]]
         batch_embs = embed_batch(batch_texts)
         all_embeddings.extend(batch_embs)
 
