@@ -6,8 +6,9 @@ import numpy as np
 from dotenv import load_dotenv
 from openai import OpenAI
 
-
-# 1. Cargar API key desde .env
+# ======================================================
+# 1. Cargar API key desde .env y crear cliente OpenAI
+# ======================================================
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
 
@@ -19,17 +20,30 @@ if not api_key:
 
 client = OpenAI(api_key=api_key)
 
-
-# 2. Rutas de datos
+# ======================================================
+# 2. Rutas de datos (carpeta /data/processed relativa al proyecto)
+# ======================================================
 BASE_DIR = Path(__file__).resolve().parents[1]
 PROCESSED_DIR = BASE_DIR / "data" / "processed"
 CHUNKS_PATH = PROCESSED_DIR / "ww2_chunks_plus_qa.jsonl"
 EMB_PATH = PROCESSED_DIR / "ww2_embeddings_plus_qa.npy"
 
+# Caché en memoria para no recargar disco en cada pregunta
+_chunks_cache = None
+_emb_matrix_cache = None
 
 
 def cargar_chunks_y_embeddings():
-    """Carga los chunks (JSONL) y la matriz de embeddings (Numpy)."""
+    """
+    Carga los chunks (JSONL) y la matriz de embeddings (Numpy) desde disco.
+    Solo debería llamarse una vez; el resto de veces usamos la caché.
+    """
+    if not CHUNKS_PATH.exists():
+        raise FileNotFoundError(f"No se encuentra el archivo de chunks: {CHUNKS_PATH}")
+
+    if not EMB_PATH.exists():
+        raise FileNotFoundError(f"No se encuentra el archivo de embeddings: {EMB_PATH}")
+
     chunks = []
     with open(CHUNKS_PATH, "r", encoding="utf-8") as f:
         for line in f:
@@ -37,10 +51,27 @@ def cargar_chunks_y_embeddings():
 
     emb_matrix = np.load(EMB_PATH)
 
-    print(f"✅ Chunks: {len(chunks)} | Embeddings: {emb_matrix.shape}")
+    print(f"✅ Chunks cargados: {len(chunks)} | Embeddings: {emb_matrix.shape}")
     return chunks, emb_matrix
 
 
+def get_chunks_and_embeddings():
+    """
+    Devuelve (chunks, emb_matrix) usando caché global.
+    Así, aunque Streamlit ejecute varias veces, el proceso del servidor
+    solo los carga de disco la primera vez.
+    """
+    global _chunks_cache, _emb_matrix_cache
+
+    if _chunks_cache is None or _emb_matrix_cache is None:
+        _chunks_cache, _emb_matrix_cache = cargar_chunks_y_embeddings()
+
+    return _chunks_cache, _emb_matrix_cache
+
+
+# ======================================================
+# 3. Funciones de embeddings y recuperación
+# ======================================================
 def embed_text(text: str) -> np.ndarray:
     """Crea el embedding de una pregunta (query)."""
     resp = client.embeddings.create(
@@ -58,7 +89,7 @@ def cosine_sim(query_vec: np.ndarray, docs_matrix: np.ndarray) -> np.ndarray:
 
 
 def recuperar_chunks(query: str, chunks, emb_matrix, k: int = 5):
-    """Búsqueda top-k."""
+    """Devuelve los top-k chunks más similares a la query."""
     q_emb = embed_text(query)
     sims = cosine_sim(q_emb, emb_matrix)
 
@@ -78,13 +109,19 @@ def recuperar_chunks(query: str, chunks, emb_matrix, k: int = 5):
     return resultados
 
 
+# ======================================================
+# 4. Generación de respuesta con el modelo de chat
+# ======================================================
 def generar_respuesta(query: str, context_chunks):
-    """Genera la respuesta final usando OpenAI con prompt conciso."""
-
+    """
+    Genera la respuesta final usando OpenAI con un prompt
+    adaptado a la Segunda Guerra Mundial.
+    """
     trozos_formateados = []
     for i, c in enumerate(context_chunks):
         trozos_formateados.append(
-            f"[Fragmento {i+1} | Fuente: {c['source']} pág. {c['page']}]\n{c['text']}"
+            f"[Fragmento {i+1} | Fuente: {c.get('source', 'desconocida')} "
+            f"pág. {c.get('page', '?')}]\n{c['text']}"
         )
 
     contexto = "\n\n".join(trozos_formateados)
@@ -125,14 +162,24 @@ def generar_respuesta(query: str, context_chunks):
     return resp.choices[0].message.content
 
 
+# ======================================================
+# 5. Función principal que usará la app Streamlit
+# ======================================================
 def responder_pregunta(query: str, k: int = 5) -> str:
-    """Función principal del RAG."""
-    chunks, emb_matrix = cargar_chunks_y_embeddings()
+    """
+    Función principal del RAG.
+    - query: pregunta del usuario.
+    - k: número de fragmentos a recuperar.
+    """
+    chunks, emb_matrix = get_chunks_and_embeddings()
     contexto = recuperar_chunks(query, chunks, emb_matrix, k=k)
     respuesta = generar_respuesta(query, contexto)
     return respuesta
 
 
+# ======================================================
+# 6. Prueba rápida en modo script (opcional)
+# ======================================================
 if __name__ == "__main__":
     pregunta = "Explica por qué la batalla de Stalingrado fue un punto de inflexión."
     print("❓ Pregunta:", pregunta)
