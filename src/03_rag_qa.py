@@ -23,8 +23,9 @@ client = OpenAI(api_key=api_key)
 # 2. Rutas de datos
 BASE_DIR = Path(__file__).resolve().parents[1]
 PROCESSED_DIR = BASE_DIR / "data" / "processed"
-CHUNKS_PATH = PROCESSED_DIR / "ww2_chunks.jsonl"
-EMB_PATH = PROCESSED_DIR / "ww2_embeddings.npy"
+CHUNKS_PATH = PROCESSED_DIR / "ww2_chunks_plus_qa.jsonl"
+EMB_PATH = PROCESSED_DIR / "ww2_embeddings_plus_qa.npy"
+
 
 
 def cargar_chunks_y_embeddings():

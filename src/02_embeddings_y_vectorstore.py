@@ -1,30 +1,22 @@
-import json
-import os
-from pathlib import Path
-
-import numpy as np
 from dotenv import load_dotenv
+import os
+import json
+import numpy as np
+from pathlib import Path
 from openai import OpenAI
 
-
-# 1. Cargar variables del .env
+# Cargar variables del .env
 load_dotenv()
-api_key = os.getenv("OPENAI_API_KEY")
 
-if not api_key:
-    raise ValueError(
-        "No se ha encontrado OPENAI_API_KEY en el .env. "
-        "Revisa que el archivo .env existe y que la variable está bien escrita."
-    )
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-client = OpenAI(api_key=api_key)
-
-
-# 2. Rutas
+# Rutas
 BASE_DIR = Path(__file__).resolve().parents[1]
 PROCESSED_DIR = BASE_DIR / "data" / "processed"
-CHUNKS_PATH = PROCESSED_DIR / "ww2_chunks.jsonl"
-EMB_PATH = PROCESSED_DIR / "ww2_embeddings.npy"
+
+# ⬇️ AHORA USAMOS EL ARCHIVO COMBINADO
+CHUNKS_PATH = PROCESSED_DIR / "ww2_chunks_plus_qa.jsonl"
+EMB_PATH = PROCESSED_DIR / "ww2_embeddings_plus_qa.npy"
 
 
 def cargar_chunks():
