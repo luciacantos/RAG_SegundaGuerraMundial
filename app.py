@@ -1,117 +1,128 @@
 import streamlit as st
+from src.rag_qa import responder_pregunta
 
 # =========================
-# CONFIGURACIÓN BÁSICA
+# CONFIG
 # =========================
 st.set_page_config(
-    page_title="Chat Segunda Guerra Mundial",
+    page_title="WORLD WAR II CHATBOT",
     page_icon="🌍",
     layout="centered"
 )
 
 # =========================
-# ESTILOS (CSS)
+# CSS - TEMA OSCURO SIMPLE
 # =========================
 CUSTOM_CSS = """
 <style>
-.main {
-    background: radial-gradient(circle at top, #111827 0, #020617 55%);
-    color: #e5e7eb;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+html, body, .stApp {
+    background-color: #0b0b0d !important;
+    color: #e5e5e5 !important;
+    font-family: 'Inter', sans-serif;
 }
-.chat-container {
-    background: rgba(15, 23, 42, 0.9);
-    border-radius: 18px;
-    padding: 18px 20px;
-    box-shadow: 0 18px 40px rgba(0,0,0,0.45);
-    border: 1px solid rgba(148, 163, 184, 0.25);
-}
-.chat-title {
-    font-size: 1.6rem;
-    font-weight: 700;
-    margin-bottom: 4px;
-    background: linear-gradient(120deg, #22c55e, #38bdf8, #a855f7);
+
+/* TITULO ÉPICO */
+.main-title {
+    text-align: center;
+    font-size: 3.4rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.20em;
+    margin-top: 1.5rem;
+    margin-bottom: 0.6rem;
+    background: linear-gradient(90deg, #f97316, #facc15);
     -webkit-background-clip: text;
     color: transparent;
 }
-.chat-subtitle {
-    font-size: 0.95rem;
-    color: #9ca3af;
-    margin-bottom: 12px;
+
+/* Subtítulo */
+.subtitle {
+    text-align: center;
+    font-size: 1rem;
+    color: #d1d5db;
+    margin-bottom: 2rem;
 }
+
+/* Línea */
 .divider {
-    border-bottom: 1px solid rgba(55, 65, 81, 0.7);
-    margin: 8px 0 12px 0;
+    border-bottom: 1px solid #2a2a2f;
+    margin: 1.4rem 0;
 }
-.stChatMessage {
-    padding: 6px 4px;
+
+/* Burbujas */
+.stChatMessage div[data-testid="stMarkdown"] {
+    padding: 12px 16px !important;
+    border-radius: 14px !important;
 }
-.block-container {
-    padding-top: 2rem !important;
+
+/* Asistente */
+.stChatMessage[data-testid="stChatMessage"] div[data-testid="stMarkdown"] {
+    background-color: #1a1a1d !important;
 }
+
+/* Usuario */
+.stChatMessage[data-testid="stChatMessage-user"] div[data-testid="stMarkdown"] {
+    background-color: #1e3a8a !important;
+    color: white !important;
+}
+
+/* Input inferior (chat_input) */
 textarea {
+    background-color: #121218 !important;
+    border: 1px solid #34343a !important;
+    color: #e5e5e5 !important;
     border-radius: 999px !important;
 }
+
+textarea:focus {
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 1px #2563eb !important;
+}
+
 </style>
 """
 
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
 # =========================
-# HISTORIAL DE MENSAJES
+# HISTORIAL
 # =========================
 if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {
-            "role": "assistant",
-            "content": "¡Hola! Soy tu asistente sobre la Segunda Guerra Mundial. "
-                       "Pregúntame lo que quieras 🌍📚"
-        }
-    ]
-
-
-# ========= IMPORTAMOS TU RAG REAL =========
-from src.rag_qa import responder_pregunta
-
-def get_answer(user_input: str) -> str:
-    """Conecta el chat de Streamlit con tu pipeline RAG."""
-    return responder_pregunta(user_input, k=5)
-
+    st.session_state.messages = [{
+        "role": "assistant",
+        "content": "Hola, soy tu asistente sobre la Segunda Guerra Mundial. Pregúntame lo que quieras. 🕊️"
+    }]
 
 # =========================
-# INTERFAZ DE CHAT
+# FUNCIÓN RAG
 # =========================
-with st.container():
-    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+def get_answer(q):
+    return responder_pregunta(q, k=5)
 
-    # Título y subtítulo
-    st.markdown('<div class="chat-title">Chat · Segunda Guerra Mundial</div>',
-                unsafe_allow_html=True)
-    st.markdown(
-        '<div class="chat-subtitle">Haz una pregunta histórica. '
-        'Ejemplo: <em>"¿Qué desencadenó el inicio de la Segunda Guerra Mundial?"</em></div>',
-        unsafe_allow_html=True
-    )
-    st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+# =========================
+# UI
+# =========================
+st.markdown('<div class="main-title">WORLD WAR II</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Pregúntame sobre batallas, líderes, fechas clave o cualquier aspecto de la Segunda Guerra Mundial.</div>', unsafe_allow_html=True)
+st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 
-    # Mostrar historial
-    for msg in st.session_state.messages:
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
+# Mostrar historial
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
 
-    # Input del usuario
-    user_input = st.chat_input("Escribe tu pregunta aquí...")
+# Chat input (el bueno, el simple, el que funciona bien)
+user_input = st.chat_input("Escribe tu pregunta aquí...")
 
-    if user_input:
-        # Guardar y mostrar mensaje del usuario
-        st.session_state.messages.append({"role": "user", "content": user_input})
-        with st.chat_message("user"):
-            st.markdown(user_input)
+if user_input:
+    # Mostrar mensaje usuario
+    st.session_state.messages.append({"role": "user", "content": user_input})
+    with st.chat_message("user"):
+        st.markdown(user_input)
 
-        # Obtener y mostrar respuesta
-        answer = get_answer(user_input)
-        st.session_state.messages.append({"role": "assistant", "content": answer})
-        with st.chat_message("assistant"):
-            st.markdown(answer)
-
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Respuesta RAG
+    answer = get_answer(user_input)
+    st.session_state.messages.append({"role": "assistant", "content": answer})
+    with st.chat_message("assistant"):
+        st.markdown(answer)
