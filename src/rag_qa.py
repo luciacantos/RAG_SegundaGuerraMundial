@@ -110,44 +110,76 @@ def recuperar_chunks(query: str, chunks, emb_matrix, k: int = 5):
 
 
 # ======================================================
-# 4. Generación de respuesta con el modelo de chat
+# 4. Generación de respuesta con PROMPT MEJORADO
 # ======================================================
+def expandir_siglas(texto: str) -> str:
+    """
+    Sustituye siglas por su explicación la primera vez que aparecen en el texto.
+    """
+    sustituciones = {
+        "RAF": "RAF (Real Fuerza Aérea británica)",
+        "Luftwaffe": "Luftwaffe (fuerza aérea alemana)",
+        "Kriegsmarine": "Kriegsmarine (marina de guerra alemana)",
+        "Wehrmacht": "Wehrmacht (fuerzas armadas alemanas)",
+        "USAAF": "USAAF (Fuerza Aérea del Ejército de EE.UU.)",
+    }
+
+    for sigla, expansion in sustituciones.items():
+        texto = texto.replace(sigla, expansion, 1)
+
+    return texto
+
+
 def generar_respuesta(query: str, context_chunks):
     """
-    Genera la respuesta final usando OpenAI con un prompt
-    adaptado a la Segunda Guerra Mundial.
+    Genera la respuesta final usando OpenAI con el prompt mejorado
+    (versión del cuaderno).
     """
-    trozos_formateados = []
+    # --- Refuerzo semántico para preguntas ambiguas ---
+    query_lower = query.lower()
+
+    if "amante" in query_lower:
+        query += " (No confundir con matrimonio o relación legal)"
+    elif "mujer" in query_lower or "esposa" in query_lower:
+        query += " (Especificar si hubo matrimonio legal y cuándo)"
+
+    # --- Construir fragmentos de contexto ---
+    partes = []
     for i, c in enumerate(context_chunks):
-        trozos_formateados.append(
+        partes.append(
             f"[Fragmento {i+1} | Fuente: {c.get('source', 'desconocida')} "
             f"pág. {c.get('page', '?')}]\n{c['text']}"
         )
 
-    contexto = "\n\n".join(trozos_formateados)
+    context_text = "\n\n".join(partes)
 
     mensajes = [
         {
             "role": "system",
             "content": (
                 "Eres un historiador experto en la Segunda Guerra Mundial. "
-                "Respondes siempre en español, de manera breve y directa, con un máximo de 6 líneas. "
-                "Tu única fuente de información es el contexto proporcionado. No inventes datos."
+                "Respondes siempre en español, de manera breve, clara y natural, "
+                "con un máximo de 6 líneas. "
+                "Tu única fuente es el contexto proporcionado. No inventes datos. "
+                "Evita expresiones demasiado técnicas o rígidas. "
+                "Cuando una pregunta implique una distinción conceptual "
+                "(por ejemplo, amante frente a esposa), aclara explícitamente "
+                "la diferencia temporal o legal entre ambos términos."
             ),
         },
         {
             "role": "user",
             "content": (
-                "A continuación tienes fragmentos relevantes procedentes de PDFs históricos "
-                "sobre la Segunda Guerra Mundial.\n\n"
-                f"{contexto}\n\n"
-                "Usa SOLO esta información para responder. Si la información no aparece, di: "
+                f"{context_text}\n\n"
+                "Usa SOLO la información anterior. Si algo no aparece, responde: "
                 "\"No existe información suficiente en los documentos para responder.\"\n\n"
-                "Instrucciones para la respuesta:\n"
+                "Instrucciones:\n"
                 "- Máximo 6 líneas.\n"
                 "- Sin subtítulos.\n"
                 "- Respuesta clara y concisa.\n"
-                "- Incluye citas al final en formato (Fuente: <PDF>, pág. X).\n\n"
+                "- Evita frases demasiado técnicas o robóticas.\n"
+                "- Ajusta el tono para que sea natural, no académico.\n"
+                "- Añade citas al final: (Fuente: <PDF>, pág. X).\n\n"
                 f"Pregunta: {query}"
             ),
         },
@@ -159,7 +191,12 @@ def generar_respuesta(query: str, context_chunks):
         max_completion_tokens=300,
     )
 
-    return resp.choices[0].message.content
+    respuesta = resp.choices[0].message.content
+
+    # --- Postproceso: expansión automática de siglas ---
+    respuesta = expandir_siglas(respuesta)
+
+    return respuesta
 
 
 # ======================================================
