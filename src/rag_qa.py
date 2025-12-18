@@ -154,41 +154,52 @@ def generar_respuesta(query: str, context_chunks):
     context_text = "\n\n".join(partes)
 
     mensajes = [
-        {
-            "role": "system",
-            "content": (
-                "Eres un historiador experto en la Segunda Guerra Mundial. "
-                "Respondes siempre en español, de manera breve, clara y natural, "
-                "con un máximo de 6 líneas. "
-                "Tu única fuente es el contexto proporcionado. No inventes datos. "
-                "Evita expresiones demasiado técnicas o rígidas. "
-                "Cuando una pregunta implique una distinción conceptual "
-                "(por ejemplo, amante frente a esposa), aclara explícitamente "
-                "la diferencia temporal o legal entre ambos términos."
-            ),
-        },
-        {
-            "role": "user",
-            "content": (
-                f"{context_text}\n\n"
-                "Usa SOLO la información anterior. Si algo no aparece, responde: "
-                "\"No existe información suficiente en los documentos para responder.\"\n\n"
-                "Instrucciones:\n"
-                "- Máximo 6 líneas.\n"
-                "- Sin subtítulos.\n"
-                "- Respuesta clara y concisa.\n"
-                "- Evita frases demasiado técnicas o robóticas.\n"
-                "- Ajusta el tono para que sea natural, no académico.\n"
-                "- Añade citas al final: (Fuente: <PDF>, pág. X).\n\n"
-                f"Pregunta: {query}"
-            ),
-        },
-    ]
+    {
+        "role": "system",
+        "content": (
+            "Eres un asistente RAG para historia de la Segunda Guerra Mundial. "
+            "Respondes SIEMPRE en español, claro y natural, con un máximo de 6 líneas. "
+            "REGLA DE ORO: solo puedes usar la información del CONTEXTO. No uses conocimiento externo. "
+            "Si la información no está en el contexto, di exactamente: "
+            "\"No existe información suficiente en los documentos para responder.\" "
+            "\n\n"
+            "PRIORIDAD DE FUENTES:\n"
+            "1) Si en el contexto aparece un fragmento cuya Fuente sea 'qa_manual', debes priorizarlo y basarte en él. "
+            "No contradigas 'qa_manual'.\n"
+            "2) Si no hay 'qa_manual' relevante, usa el resto de fragmentos.\n\n"
+            "CONTROL DE PREMISAS:\n"
+            "Si la pregunta contiene una premisa falsa o simplificadora (ej. 'causó directamente', 'fue la única causa'), "
+            "NO la aceptes. Corrige la premisa primero (por ejemplo empezando con 'No,' o 'No exactamente,').\n\n"
+            "CAUSALIDAD:\n"
+            "Distingue siempre entre causa indirecta/factor contribuyente y causa directa/suficiente. "
+            "Evita palabras como 'desencadenante' si implican causalidad directa, salvo que el contexto lo diga explícitamente.\n\n"
+            "CITAS:\n"
+            "Termina SIEMPRE con citas en el formato: (Fuente: <PDF/qa_manual>, pág. X). "
+            "No inventes fuentes ni páginas; usa solo las que aparezcan en el contexto."
+        ),
+    },
+    {
+        "role": "user",
+        "content": (
+            f"{context_text}\n\n"
+            "Instrucciones de salida:\n"
+            "- Máximo 6 líneas.\n"
+            "- Sin subtítulos.\n"
+            "- Tono natural (no académico).\n"
+            "- Si hay una respuesta de 'qa_manual' en el contexto, úsala como base.\n"
+            "- Si falta evidencia suficiente, devuelve EXACTAMENTE: "
+            "\"No existe información suficiente en los documentos para responder.\"\n"
+            "- Añade citas al final.\n\n"
+            f"Pregunta: {query}"
+        ),
+    },
+]
 
     resp = client.chat.completions.create(
         model="gpt-4.1-mini",
         messages=mensajes,
         max_completion_tokens=300,
+        temperature=0,
     )
 
     respuesta = resp.choices[0].message.content
