@@ -21,15 +21,31 @@ El usuario hace una pregunta sobre la Segunda Guerra Mundial a través de una in
 2. Recupera los fragmentos más relevantes de una base de conocimiento histórica mediante similitud coseno.
 3. Construye un *prompt* aumentado con esos fragmentos y genera la respuesta con un LLM, **basándose solo en el contexto recuperado** (no en el conocimiento "libre" del modelo), lo que reduce las alucinaciones y permite citar la fuente.
 
+## 📚 Base de conocimiento
+
+La base documental reúne **~40 documentos PDF** organizados en **7 categorías temáticas**, además de un conjunto de **preguntas y respuestas redactadas manualmente** que refuerzan las consultas más habituales:
+
+| # | Categoría | Ejemplos de contenido |
+|---|-----------|------------------------|
+| 01 | Batallas | Stalingrado, Normandía, Midway, Kursk, Berlín, Iwo Jima… |
+| 02 | Frentes | Frente oriental y occidental, Pearl Harbor, Operación Barbarroja, Afrika Korps… |
+| 03 | Política y sociedad | Yalta, Potsdam, Múnich, Holocausto, Juicios de Núremberg, pactos… |
+| 04 | Tecnología y armamento | Máquina Enigma, carros de combate, Kriegsmarine… |
+| 05 | Operaciones aliadas | Desembarco de Normandía, Market-Garden, Torch, Bagratión, Dragoon… |
+| 06 | Documentos generales | Visión global del conflicto |
+| 07 | Biografías | Hitler, Stalin, Churchill, Roosevelt, Goebbels |
+
+> 📝 **QA manual:** los archivos `qa_manual.jsonl` contienen preguntas y respuestas escritas a mano que se integran en la base vectorial junto a los fragmentos de los PDF, mejorando la calidad de la recuperación en las consultas frecuentes.
+
 ## 🧩 Arquitectura del RAG
 
 El pipeline se divide en tres fases:
 
 ### 1 · Preparación del conocimiento *(offline)*
-- **Fuentes:** documentos PDF sobre 5 ejes temáticos — batallas, frentes, política y sociedad, tecnología y armamento, y biografías.
+- **Fuentes:** ~40 PDFs sobre 7 ejes temáticos (batallas, frentes, política y sociedad, tecnología y armamento, operaciones aliadas, documentos generales y biografías).
 - **Extracción y limpieza:** extracción de texto y metadatos, eliminación de ruido y unificación de formato.
 - **Fragmentación:** división en bloques solapados (`chunk_size = 1000`, `chunk_overlap = 200`) para no perder contexto en los cortes.
-- **Estructuración:** cada fragmento se guarda en JSONL con su texto y metadatos (fuente, página, tipo), junto a un set de **preguntas-respuestas manuales (QA)** que enriquecen la base.
+- **Estructuración:** cada fragmento se guarda en JSONL con su texto y metadatos (fuente, página, tipo), junto al set de **preguntas-respuestas manuales (QA)**.
 - **Vectorización:** cada fragmento se convierte en un vector con `text-embedding-3-large` (OpenAI) y se almacena en un **vector store propio** (matriz NumPy `float32`).
 
 ### 2 · Recuperación de información *(online)*
@@ -40,32 +56,3 @@ El pipeline se divide en tres fases:
 ### 3 · Generación de la respuesta
 - Se construye un **prompt aumentado** combinando la pregunta original con los fragmentos recuperados.
 - El LLM de OpenAI genera una respuesta coherente y fundamentada en ese contexto.
-
-  ## ✨ Detalle técnico destacable
-
-A diferencia de un RAG "de librería", el **vector store está implementado a mano con NumPy**: el almacenamiento (matriz `float32`), el cálculo de similitud coseno y la selección de Top-K son propios, sin FAISS ni Chroma. Esto hace explícito el mecanismo interno de la recuperación semántica.
-
-## 🛠️ Stack técnico
-
-- **Lenguaje:** Python
-- **Embeddings:** OpenAI `text-embedding-3-large`
-- **Generación:** modelo de lenguaje de OpenAI
-- **Vector store:** implementación propia con NumPy (similitud coseno)
-- **Interfaz:** Streamlit
-- **Datos:** PDFs históricos + QA manual en formato JSONL
-
-## 📁 Estructura del repositorio
-
-```text
-03_IA_Segunda_Guerra_Mundial/
-├── app.py              # Interfaz web (Streamlit) y orquestación del RAG
-├── src/                # Lógica: embeddings, recuperación y generación
-├── notebooks/          # Preparación de fuentes, fragmentación y pruebas
-├── .gitignore
-└── README.md
-`
-
-## 👤 Autora
-
-**Lucía Cantos Burgos** — Grado en Ingeniería Matemática, Universidad Alfonso X El Sabio
-[GitHub](https://github.com/luciacantos)
