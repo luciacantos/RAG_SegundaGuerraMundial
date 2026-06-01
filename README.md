@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/banner.png" alt="RAG · Segunda Guerra Mundial — Asistente de preguntas y respuestas con recuperación semántica" width="100%">
+  <img src="docs/banner_rag.png" alt="RAG · Segunda Guerra Mundial — Asistente de preguntas y respuestas con recuperación semántica" width="100%">
 </p>
 
 <p align="center">
