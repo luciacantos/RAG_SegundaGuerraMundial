@@ -56,3 +56,34 @@ El pipeline se divide en tres fases:
 ### 3 · Generación de la respuesta
 - Se construye un **prompt aumentado** combinando la pregunta original con los fragmentos recuperados.
 - El LLM de OpenAI genera una respuesta coherente y fundamentada en ese contexto.
+
+## ✨ Detalle técnico destacable
+
+A diferencia de un RAG "de librería", el **vector store está implementado a mano con NumPy**: el almacenamiento (matriz `float32`), el cálculo de similitud coseno y la selección de Top-K son propios, sin FAISS ni Chroma. Esto hace explícito el mecanismo interno de la recuperación semántica.
+
+## 🛠️ Stack técnico
+
+- **Lenguaje:** Python
+- **Embeddings:** OpenAI `text-embedding-3-large`
+- **Generación:** modelo de lenguaje de OpenAI
+- **Vector store:** implementación propia con NumPy (similitud coseno)
+- **Interfaz:** Streamlit
+- **Datos:** ~40 PDFs históricos + QA manual en formato JSONL
+
+## 📁 Estructura del repositorio
+
+```text
+RAG_SegundaGuerraMundial/
+├── app.py              # Interfaz web (Streamlit) y orquestación del RAG
+├── src/                # Lógica: embeddings, recuperación y generación
+├── notebooks/          # Preparación de fuentes, fragmentación y pruebas
+├── .gitignore
+└── README.md
+```
+
+
+
+## 👤 Autora
+
+**Lucía Cantos Burgos** — Grado en Ingeniería Matemática, Universidad Alfonso X El Sabio
+[GitHub](https://github.com/luciacantos)
